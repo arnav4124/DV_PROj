@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Car Analysis Dashboard</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #f5f7fa 0%, #e4e9f2 100%);
+            min-height: 100vh;
+        }
+
+        .container {
+            background-color: white;
+            border-radius: 16px;
+            padding: 32px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            max-width: 1200px;
+            margin: 0 auto;
+            border: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 32px;
+        }
+
+        .title {
+            color: #1a2b4b;
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        select {
+            padding: 8px 16px;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+            background-color: white;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        select:hover {
+            border-color: #3b82f6;
+        }
+
+        .bar, .line {
+            transition: all 0.3s ease;
+        }
+
+        .bar:hover {
+            filter: brightness(0.9);
+        }
+
+        .grid line {
+            stroke: #e5e7eb;
+            stroke-opacity: 0.5;
+            stroke-dasharray: 4,4;
+        }
+
+        .tooltip {
+            position: absolute;
+            padding: 12px 16px;
+            background: rgba(17, 24, 39, 0.95);
+            color: white;
+            border-radius: 8px;
+            font-size: 13px;
+            pointer-events: none;
+            opacity: 0;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 24px;
+            margin-top: 32px;
+            padding: 16px;
+            background-color: #f8fafc;
+            border-radius: 8px;
+            flex-wrap: wrap;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 12px;
+            background-color: white;
+            border-radius: 6px;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        }
+
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1 class="title">Car Condition Analysis</h1>
+            <select id="chartType">
+                <option value="bar">Bar Chart</option>
+                <option value="line">Line Chart</option>
+            </select>
+        </div>
+        <div id="chart"></div>
+        <div id="legend" class="legend"></div>
+    </div>
+
+    <script>
+        // Load and process the CSV data
+        d3.csv("car_prices.csv").then(function(csvData) {
+            const validBodyTypes = ["sedan", "suv", "hatchback"];
+            
+            // Process data
+            const processedData = csvData
+                .filter(d => validBodyTypes.includes(d.body.toLowerCase()))
+                .map(d => ({
+                    bodyType: d.body.toLowerCase(),
+                    odometer: parseInt(d.odometer),
+                    condition: parseFloat(d.condition)
+                }));
+
+            // Create distance ranges
+            const rangeSize = 50000;
+            const maxDistance = 250000;
+            const ranges = [];
+            for (let i = 0; i < maxDistance; i += rangeSize) {
+                ranges.push({
+                    start: i,
+                    end: i + rangeSize,
+                    label: `${i/1000}k-${(i+rangeSize)/1000}k`
+                });
+            }
+
+            // Calculate averages
+            const chartData = [];
+            validBodyTypes.forEach(bodyType => {
+                ranges.forEach(range => {
+                    const carsInRange = processedData.filter(d => 
+                        d.bodyType === bodyType &&
+                        d.odometer >= range.start &&
+                        d.odometer < range.end
+                    );
+
+                    if (carsInRange.length > 0) {
+                        chartData.push({
+                            bodyType: bodyType,
+                            range: range.label,
+                            rangeStart: range.start,
+                            avgCondition: d3.mean(carsInRange, d => d.condition),
+                            count: carsInRange.length
+                        });
+                    }
+                });
+            });
+
+            // Set up dimensions
+            const margin = {top: 40, right: 80, bottom: 80, left: 60};
+            const width = 1000 - margin.left - margin.right;
+            const height = 500 - margin.top - margin.bottom;
+
+            // Color scale
+            const color = d3.scaleOrdinal()
+                .domain(validBodyTypes)
+                .range(["#3b82f6", "#f97316", "#14b8a6"]);
+
+            // Create tooltip
+            const tooltip = d3.select("body").append("div")
+                .attr("class", "tooltip");
+
+            // Function to draw the chart
+            function drawChart(type) {
+                // Clear previous chart
+                d3.select("#chart").html("");
+
+                // Create SVG
+                const svg = d3.select("#chart")
+                    .append("svg")
+                    .attr("width", width + margin.left + margin.right)
+                    .attr("height", height + margin.top + margin.bottom)
+                    .append("g")
+                    .attr("transform", `translate(${margin.left},${margin.top})`);
+
+                // Set up scales
+                const x0 = d3.scaleBand()
+                    .domain(ranges.map(d => d.label))
+                    .rangeRound([0, width])
+                    .padding(0.1);
+
+                const x1 = d3.scaleBand()
+                    .domain(validBodyTypes)
+                    .rangeRound([0, x0.bandwidth()])
+                    .padding(0.05);
+
+                const y = d3.scaleLinear()
+                    .domain([0, 50])
+                    .range([height, 0]);
+
+                // Add gridlines
+                svg.append("g")
+                    .attr("class", "grid")
+                    .call(d3.axisLeft(y)
+                        .tickSize(-width)
+                        .tickFormat("")
+                    );
+
+                // Add axes
+                svg.append("g")
+                    .attr("transform", `translate(0,${height})`)
+                    .call(d3.axisBottom(x0))
+                    .selectAll("text")
+                    .style("text-anchor", "end")
+                    .attr("dx", "-.8em")
+                    .attr("dy", ".15em")
+                    .attr("transform", "rotate(-45)");
+
+                svg.append("g")
+                    .call(d3.axisLeft(y));
+
+                if (type === 'bar') {
+                    // Draw bars
+                    ranges.forEach(range => {
+                        validBodyTypes.forEach(bodyType => {
+                            const dataPoint = chartData.find(d => 
+                                d.range === range.label && 
+                                d.bodyType === bodyType
+                            );
+
+                            if (dataPoint) {
+                                svg.append("rect")
+                                    .attr("class", "bar")
+                                    .attr("x", x0(range.label) + x1(bodyType))
+                                    .attr("y", y(dataPoint.avgCondition))
+                                    .attr("width", x1.bandwidth())
+                                    .attr("height", height - y(dataPoint.avgCondition))
+                                    .attr("fill", color(bodyType))
+                                    .attr("rx", 4)
+                                    .on("mouseover", function(event) {
+                                        tooltip.transition()
+                                            .duration(200)
+                                            .style("opacity", 1);
+                                        tooltip.html(`
+                                            <strong>${bodyType.toUpperCase()}</strong><br>
+                                            Distance: ${range.label}<br>
+                                            Condition: ${dataPoint.avgCondition.toFixed(1)}/50<br>
+                                            Sample: ${dataPoint.count} cars
+                                        `)
+                                            .style("left", (event.pageX + 5) + "px")
+                                            .style("top", (event.pageY - 28) + "px");
+                                    })
+                                    .on("mouseout", function() {
+                                        tooltip.transition()
+                                            .duration(500)
+                                            .style("opacity", 0);
+                                    });
+                            }
+                        });
+                    });
+                } else {
+                    // Draw lines
+                    validBodyTypes.forEach(bodyType => {
+                        const lineData = chartData.filter(d => d.bodyType === bodyType);
+                        
+                        const line = d3.line()
+                            .x(d => x0(d.range) + x0.bandwidth()/2)
+                            .y(d => y(d.avgCondition))
+                            .curve(d3.curveMonotoneX);
+
+                        svg.append("path")
+                            .datum(lineData)
+                            .attr("class", "line")
+                            .attr("fill", "none")
+                            .attr("stroke", color(bodyType))
+                            .attr("stroke-width", 3)
+                            .attr("d", line);
+
+                        // Add points
+                        svg.selectAll(`dot-${bodyType}`)
+                            .data(lineData)
+                            .enter()
+                            .append("circle")
+                            .attr("r", 5)
+                            .attr("cx", d => x0(d.range) + x0.bandwidth()/2)
+                            .attr("cy", d => y(d.avgCondition))
+                            .attr("fill", color(bodyType))
+                            .on("mouseover", function(event, d) {
+                                tooltip.transition()
+                                    .duration(200)
+                                    .style("opacity", 1);
+                                tooltip.html(`
+                                    <strong>${d.bodyType.toUpperCase()}</strong><br>
+                                    Distance: ${d.range}<br>
+                                    Condition: ${d.avgCondition.toFixed(1)}/50<br>
+                                    Sample: ${d.count} cars
+                                `)
+                                    .style("left", (event.pageX + 5) + "px")
+                                    .style("top", (event.pageY - 28) + "px");
+                            })
+                            .on("mouseout", function() {
+                                tooltip.transition()
+                                    .duration(500)
+                                    .style("opacity", 0);
+                            });
+                    });
+                }
+
+                // Update legend
+                const legend = d3.select("#legend");
+                legend.html(""); // Clear previous legend
+                validBodyTypes.forEach(bodyType => {
+                    const legendItem = legend.append("div")
+                        .attr("class", "legend-item");
+                    
+                    legendItem.append("div")
+                        .attr("class", "legend-color")
+                        .style("background-color", color(bodyType));
+                    
+                    legendItem.append("span")
+                        .text(bodyType.toUpperCase());
+                });
+            }
+
+            // Initial draw
+            drawChart('bar');
+
+            // Handle chart type changes
+            d3.select("#chartType").on("change", function() {
+                drawChart(this.value);
+            });
+
+        }).catch(function(error) {
+            console.error("Error loading the CSV file:", error);
+            d3.select("#chart")
+                .append("p")
+                .text("Error loading data. Please check if the CSV file is in the correct location and format.");
+        });
+    </script>
+</body>
+</html>

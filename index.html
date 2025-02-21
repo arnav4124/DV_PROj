@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>US Car Sales Analysis</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        }
+
+        body {
+            min-height: 100vh;
+            background: #1a1a1a;
+            color: #fff;
+            overflow-x: hidden;
+        }
+
+        .background-animation {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            background: 
+                radial-gradient(circle at 20% 20%, #2563eb22 0%, transparent 40%),
+                radial-gradient(circle at 80% 80%, #7c3aed22 0%, transparent 40%);
+            animation: backgroundMove 20s ease-in-out infinite alternate;
+        }
+
+        @keyframes backgroundMove {
+            0% {
+                transform: scale(1) rotate(0deg);
+            }
+            100% {
+                transform: scale(1.1) rotate(5deg);
+            }
+        }
+
+        .content {
+            position: relative;
+            z-index: 2;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 60px;
+            animation: fadeIn 1s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .title {
+            font-size: 3em;
+            margin-bottom: 20px;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        .car-icon {
+            font-size: 1.2em;
+            animation: drive 2s ease-in-out infinite;
+        }
+
+        @keyframes drive {
+            0% {
+                transform: translateX(-5px);
+            }
+            50% {
+                transform: translateX(5px);
+            }
+            100% {
+                transform: translateX(-5px);
+            }
+        }
+
+        .description {
+            max-width: 800px;
+            margin: 0 auto 60px;
+            line-height: 1.6;
+            color: #e5e7eb;
+            text-align: center;
+            animation: fadeIn 1s ease-out 0.3s backwards;
+        }
+
+        .visualization-grid {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            /* align-items: center; */
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin-top: 40px;
+        }
+
+        .viz-button {
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            padding: 25px;
+            border-radius: 15px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            text-align: center;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            animation: fadeIn 1s ease-out 0.6s backwards;
+        }
+
+        .viz-button:nth-child(2) {
+            animation-delay: 0.8s;
+        }
+
+        .viz-button:nth-child(3) {
+            animation-delay: 1s;
+        }
+
+        .viz-button:hover {
+            transform: translateY(-5px);
+            box-shadow: 
+                0 10px 20px rgba(0, 0, 0, 0.2),
+                0 0 20px rgba(37, 99, 235, 0.3);
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .viz-button h3 {
+            font-size: 1.5em;
+            margin-bottom: 15px;
+            color: #60a5fa;
+        }
+
+        .viz-button p {
+            font-size: 0.9em;
+            color: #e5e7eb;
+            line-height: 1.5;
+        }
+
+    </style>
+</head>
+<body>
+    <div class="background-animation"></div>
+    <div class="content">
+        <header class="header">
+            <h1 class="title">
+                US Car Sales Analysis 
+                <span class="car-icon">🚗</span>
+            </h1>
+            <p class="description">
+                Explore comprehensive insights into the American automotive market through interactive visualizations. 
+                Our analysis covers state-wise vehicle usage patterns, seasonal sales trends, and the relationship 
+                between vehicle conditions and mileage across different car types. This data-driven approach helps 
+                manufacturers, dealers, and policymakers make informed decisions about the automotive industry.
+            </p>
+        </header>
+
+        <div class="visualization-grid">
+            <a href="choropleth.html" class="viz-button">
+                <h3>State-wise Vehicle Usage</h3>
+                <p>Explore aggregate odometer readings across different states to understand regional travel patterns 
+                and identify areas with high vehicle usage through an interactive choropleth map.</p>
+            </a>
+
+            <a href="reg_line.html" class="viz-button">
+                <h3>Monthly Sales Trends</h3>
+                <p>Analyze peak car sales periods throughout the year and discover which months consistently drive 
+                the highest sales across different price ranges.</p>
+            </a>
+
+            <a href="grouped_bar.html" class="viz-button">
+                <h3>Vehicle Condition Analysis</h3>
+                <p>Investigate the relationship between vehicle condition and odometer readings across different 
+                car types to understand durability and value retention.</p>
+            </a>
+        </div>
+    </div>
+</body>
+</html>
